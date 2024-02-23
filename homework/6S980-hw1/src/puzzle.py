@@ -1,7 +1,11 @@
+from glob import glob
 from pathlib import Path
 from typing import Literal, TypedDict
 
+import numpy as np
+import torch
 from jaxtyping import Float
+from PIL import Image
 from torch import Tensor
 
 
@@ -13,8 +17,37 @@ class PuzzleDataset(TypedDict):
 
 def load_dataset(path: Path) -> PuzzleDataset:
     """Load the dataset into the required format."""
-
-    raise NotImplementedError("This is your homework.")
+    import json
+    
+    pzl = PuzzleDataset()
+    
+    metadata = json.load("D:\\document\\mit_s_980\\homework\\6S980-hw1\\abf149\\metadata.json", "r")
+    
+    pzl.extrinsics = Tensor(metadata["extrinsics"])
+    pzl.intrinsics = Tensor(metadata["intrinsics"])
+    
+    image_paths = glob("D:\\document\\mit_s_980\\homework\\6S980-hw1\\abf149\\images\\*.png")
+    images = []
+    
+    for path in image_paths:
+        # 使用Pillow读取图片
+        with Image.open(path) as img:
+            # 转换图片为Tensor，并标准化到[0, 1]
+            image_tensor = torch.tensor(np.array(img)) / 255.0
+            # 如果是灰度图，需要增加一个通道维度
+            if len(image_tensor.shape) == 2:
+                image_tensor = image_tensor.unsqueeze(0)
+            else:
+                # 转换为CHW格式
+                image_tensor = image_tensor.permute(2, 0, 1)
+            images.append(image_tensor)
+    
+    # 将所有图片堆叠成一个Tensor
+    images_tensor = torch.stack(images)
+    
+    pzl.images = images_tensor
+    
+    return pzl
 
 
 def convert_dataset(dataset: PuzzleDataset) -> PuzzleDataset:

@@ -7,7 +7,12 @@ def homogenize_points(
 ) -> Float[Tensor, "*batch dim+1"]:
     """Turn n-dimensional points into (n+1)-dimensional homogeneous points."""
 
-    raise NotImplementedError("This is your homework.")
+    import torch
+    s = points.shape
+    v = torch.ones(*s[:-1], 1, device=points.device, dtype=points.dtype)
+    
+    return torch.concat([points, v], dim=-1)
+
 
 
 def homogenize_vectors(
@@ -15,7 +20,11 @@ def homogenize_vectors(
 ) -> Float[Tensor, "*batch dim+1"]:
     """Turn n-dimensional vectors into (n+1)-dimensional homogeneous vectors."""
 
-    raise NotImplementedError("This is your homework.")
+    import torch
+    s = points.shape
+    v = torch.zeros(*s[:-1], 1, device=points.device, dtype=points.dtype)
+    
+    return torch.concat([points, v], dim=-1)
 
 
 def transform_rigid(
@@ -24,7 +33,15 @@ def transform_rigid(
 ) -> Float[Tensor, "*batch 4"]:
     """Apply a rigid-body transform to homogeneous points or vectors."""
 
-    raise NotImplementedError("This is your homework.")
+    import torch
+    from einops import einsum
+    from torch import matmul
+    
+    assert torch.allclose(
+        matmul(transform, xyz.unsqueeze(-1)).squeeze(-1),
+        einsum(transform, xyz, "... i j, ... j -> ... i")
+    )
+    return einsum(transform, xyz, "... i j, ... j -> ... i")
 
 
 def transform_world2cam(
@@ -34,8 +51,11 @@ def transform_world2cam(
     """Transform points or vectors from homogeneous 3D world coordinates to homogeneous
     3D camera coordinates.
     """
-
-    raise NotImplementedError("This is your homework.")
+    
+    import torch
+    from einops import einsum
+    
+    return einsum(torch.inverse(cam2world), xyz, "... i j, ... j -> ... i")
 
 
 def transform_cam2world(
@@ -46,7 +66,9 @@ def transform_cam2world(
     3D world coordinates.
     """
 
-    raise NotImplementedError("This is your homework.")
+    from einops import einsum
+    
+    return einsum(cam2world, xyz, "... i j, ... j -> ... i")
 
 
 def project(
@@ -55,4 +77,22 @@ def project(
 ) -> Float[Tensor, "*batch 2"]:
     """Project homogenized 3D points in camera coordinates to pixel coordinates."""
 
-    raise NotImplementedError("This is your homework.")
+    import torch
+    from einops import einsum
+    from torch import matmul
+    
+    t = xyz[...,:3]
+    t = einsum(intrinsics, t, "... i j, ... j -> ... i")
+    t[..., 0] = t[..., 0] / t[..., 2]
+    t[..., 1] = t[..., 1] / t[..., 2]
+    
+    proj = matmul(intrinsics, xyz[..., :3].unsqueeze(-1)).squeeze(-1)
+    tmp = proj[..., :2] / proj[..., 2:3]
+    
+    assert torch.allclose(
+        tmp,
+        t[..., :2]
+    )
+ 
+    return t[..., :2]
+    
