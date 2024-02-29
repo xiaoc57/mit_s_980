@@ -10,7 +10,7 @@ class SineLayer(nn.Module):
         d_out: int,
         bias: bool = True,
         is_first: bool = False,
-        omega_0: float = 30.0,
+        omega_0: float = 2.5,
     ):
         super().__init__()
         self.omega_0 = omega_0

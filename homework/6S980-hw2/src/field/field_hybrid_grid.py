@@ -3,6 +3,8 @@ from omegaconf import DictConfig
 from torch import Tensor
 
 from .field import Field
+from .field_grid import FieldGrid
+from .field_mlp import FieldMLP
 
 
 class FieldHybridGrid(Field):
@@ -20,10 +22,12 @@ class FieldHybridGrid(Field):
         each to __init__ and forward!
         """
         super().__init__(cfg, d_coordinate, d_out)
-        raise NotImplementedError("This is your homework.")
+        self.fg = FieldGrid(cfg["grid"], d_coordinate, d_out)
+        self.fmlp = FieldMLP(cfg["mlp"], d_out, d_out)
 
     def forward(
         self,
         coordinates: Float[Tensor, "batch coordinate_dim"],
     ) -> Float[Tensor, "batch output_dim"]:
-        raise NotImplementedError("This is your homework.")
+        out = self.fg(coordinates)
+        return self.fmlp(out)

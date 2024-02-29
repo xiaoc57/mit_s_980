@@ -1,3 +1,5 @@
+import torch
+from einops import rearrange, repeat
 from jaxtyping import Float
 from omegaconf import DictConfig
 from torch import Tensor, nn
@@ -32,7 +34,16 @@ class NeRF(nn.Module):
         4. Composite these alpha values together with the evaluated colors from.
         """
 
-        raise NotImplementedError("This is your homework.")
+        xyz, sample_boundaries = self.generate_samples(origins, directions, near, far, 64)
+        b = xyz.shape[0]
+        xyz = rearrange(xyz, "b h c -> (b h) c")
+        color_sigma = self.field(xyz)
+        color_sigma = rearrange(color_sigma, "(b h) c -> b h c", b = b)
+        color = color_sigma[..., :-1]
+        sigma = color_sigma[..., -1:]
+        sigma = rearrange(sigma, "b c 1 -> b c")
+        alpha = self.compute_alpha_values(sigma, sample_boundaries)
+        return self.alpha_composite(alpha, color)
 
     def generate_samples(
         self,
@@ -50,8 +61,21 @@ class NeRF(nn.Module):
         endpoints at the near and far planes). Also return sample locations, which fall
         at the midpoints of the segments.
         """
+        b = origins.shape[0]
+        
+        halfl = (far - near) / num_samples / 2
+        bound = torch.linspace(near, far, num_samples + 1, device=origins.device)
+        dt = bound[1:] - halfl
+        
+        bound = repeat(bound, "... -> b ...", b = b)
+        
+        origins = repeat(origins, "b c -> b n c", n = num_samples)
+        directions = repeat(directions, "b c -> b n c", n = num_samples)
+        dt = repeat(dt, "... -> b ... c", b = b, c = 3)
+        
+        xyz = origins + directions * dt
 
-        raise NotImplementedError("This is your homework.")
+        return xyz, bound
 
     def compute_alpha_values(
         self,
@@ -61,8 +85,9 @@ class NeRF(nn.Module):
         """Compute alpha values from volumetric densities (values of sigma) and segment
         boundaries.
         """
-
-        raise NotImplementedError("This is your homework.")
+        d = boundaries[..., 1:] - boundaries[..., :-1] 
+        alpha = 1 - torch.exp(-sigma * d)
+        return alpha
 
     def alpha_composite(
         self,
@@ -73,4 +98,8 @@ class NeRF(nn.Module):
         background is black.
         """
 
-        raise NotImplementedError("This is your homework.")
+        transmitten = torch.cumprod(1 - alphas, dim=-1)
+        w = transmitten * alphas
+        w = repeat(w, "... -> ... c", c = colors.shape[-1])
+        c = torch.sum(w * colors, dim=1)
+        return c

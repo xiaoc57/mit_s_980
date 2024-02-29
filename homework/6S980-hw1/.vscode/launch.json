@@ -5,6 +5,13 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Part 3: own",
+            "type": "python",
+            "request": "launch",
+            "module": "scripts.2_projection",
+            "justMyCode": true
+        },
+        {
             "name": "Part 0: Introduction",
             "type": "python",
             "request": "launch",

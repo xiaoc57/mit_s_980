@@ -1,8 +1,13 @@
+import torch
+
+from src.components.positional_encoding import PositionalEncoding
 from jaxtyping import Float
 from omegaconf import DictConfig
 from torch import Tensor
 
 from .field import Field
+from .field_grid import FieldGrid
+from .field_mlp import FieldMLP
 
 
 class FieldGroundPlan(Field):
@@ -22,7 +27,11 @@ class FieldGroundPlan(Field):
         """
         super().__init__(cfg, d_coordinate, d_out)
         assert d_coordinate == 3
-        raise NotImplementedError("This is your homework.")
+        self.fg = FieldGrid(cfg["grid"], d_coordinate-1, d_out)
+        octaves = cfg.get("positional_encoding_octaves")
+        self.pse = PositionalEncoding(octaves)
+        self.fmlp = FieldMLP(cfg["mlp"], d_out+(2 * octaves), d_out)
+        
 
     def forward(
         self,
@@ -35,5 +44,12 @@ class FieldGroundPlan(Field):
         - Concatenate the grid's outputs with the corresponding encoded Z values, then
           feed the result through the MLP.
         """
+        xy = coordinates[..., :2]
+        z = coordinates[..., 2:]
 
-        raise NotImplementedError("This is your homework.")
+        o1 = self.fg(xy)
+        o2 = self.pse(z)
+        out = torch.concat([o1, o2], dim=-1)
+        
+        out = self.fmlp(out)
+        return out

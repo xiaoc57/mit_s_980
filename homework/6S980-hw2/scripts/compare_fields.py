@@ -27,8 +27,9 @@ if __name__ == "__main__":
         print(f"Training {title}")
         key = re.sub(r"\W+", "", title)
         output_path = Path(f"compare/{key}")
+        # python_path = "C:\\Users\\xiaoc57\\miniconda3\\envs\\s980\\python.exe"
         os.system(
-            f"python3 -m scripts.train_field {parameters} output_path={output_path} num_iterations={NUM_STEPS} visualization_interval={NUM_STEPS - 1} batch_size=512"
+            f"C:\\Users\\xiaoc57\\miniconda3\\envs\\s980\\python.exe -m scripts.train_field {parameters} output_path={output_path} num_iterations={NUM_STEPS} visualization_interval={NUM_STEPS - 1} batch_size=512"
         )
         image = to_tensor(Image.open(output_path / f"{NUM_STEPS - 1:0>6}.png"))
         image = add_label(image, title)

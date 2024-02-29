@@ -57,7 +57,7 @@ def train(cfg: DictConfig):
                 samples = sample_grid(dataset.grid_size, device)
                 *dimensions, d_coordinate = samples.shape
                 samples = samples.reshape(-1, d_coordinate)
-                values = [field(batch) for batch in samples.split(cfg.batch_size)]
+                values = [field(batch)  for batch in samples.split(cfg.batch_size)]
                 values = torch.cat(values).reshape(*dimensions, -1)
 
                 # Save the result.

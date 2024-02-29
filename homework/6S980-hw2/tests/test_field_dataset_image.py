@@ -1,9 +1,12 @@
+import sys
+
 import torch
 from jaxtyping import install_import_hook
 from omegaconf import DictConfig
 
 # Add runtime type checking to all imports.
 with install_import_hook(("src",), ("beartype", "beartype")):
+    
     from src.dataset.field_dataset_image import FieldDatasetImage
 
     from .f32 import f32
